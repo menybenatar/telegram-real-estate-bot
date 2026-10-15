@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from .models import Listing
 
 
+
 def dedupe(listings: Iterable[Listing]) -> list[Listing]:
     """Keep the first occurrence of every listing key, preserving order.
 
