@@ -5,6 +5,7 @@ import pytest
 from helpers import FakeResponse, FakeSession, make_listing
 from real_estate_bot.telegram_notifier import CAPTION_LIMIT, TelegramError, TelegramNotifier, build_message
 
+
 TOKEN = "123456789:AAH-secret-token-abcdefghijklmnop"
 OK = FakeResponse(200, {"ok": True, "result": {}})
 
