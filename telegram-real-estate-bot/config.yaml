@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# Search configuration. Edit this file only - no Python changes are needed.
+# Add a search by copying a block, disable one with `enabled: false`.
+# Unknown keys are rejected on purpose, so typos are caught at startup.
+# ---------------------------------------------------------------------------
+
+settings:
+  language: "en"                    # Telegram message language: "en" or "he"
+  max_notifications_per_run: 10     # Telegram batch size per run; the rest wait for the next run
+  send_delay_seconds: 1.5           # pause between messages (Telegram allows ~1 msg/sec per chat)
+  retention_days: 180               # forget listings not seen on the source for this long
+  pending_expiry_days: 3            # drop queued-but-unsent listings after this many days
+  max_send_attempts: 3              # give up on a listing after this many failed Telegram sends
+  request_delay_seconds: 3.0        # pause between page requests to the source
+  request_timeout_seconds: 20
+  max_http_retries: 3
+  respect_robots_txt: true
+  notify_on_error: true             # send a Telegram message when a run fails (at most 1 per 24h per error)
+  # user_agent: "real-estate-alert-bot/0.1 (personal, low-volume)"
+  #
+  # Broker detection (Hebrew). Defaults are built in; override only if needed.
+  # broker_terms: ["תיווך", "מתווך", "מתווכת", "משרד תיווך", "סוכנות נדל\"ן", "עמלת תיווך"]
+
+searches:
+  - name: "Holon apartments for sale"
+    city: "חולון"
+    # city_code: 6600               # optional: Yad2 numeric city code (looked up automatically for known cities)
+    transaction_type: "sale"
+    property_type: "apartment"      # one value, or a list: ["apartment", "garden_apartment"]
+    max_price_ils: 1750000
+    min_price_ils: null
+    min_rooms: null
+    max_rooms: null
+    min_size_sqm: null
+    max_size_sqm: null
+    require_image: true
+    require_price: true
+    exclude_brokers: true
+    broker_uncertain: "mark"        # when seller type can't be determined: "include" | "exclude" | "mark"
+    max_pages: 3                    # how many result pages to inspect per run
+    # extra_params:                 # raw query params passed to the source (e.g. sorting) without code changes
+    #   orderBy: 1
+
+  - name: "Example additional search"
+    enabled: false
+    city: "בת ים"
+    transaction_type: "sale"
+    property_type: "apartment"
+    max_price_ils: 2000000
+    require_image: true
+    require_price: true
+    exclude_brokers: true

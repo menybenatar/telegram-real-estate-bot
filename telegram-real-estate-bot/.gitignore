@@ -1,0 +1,25 @@
+# Secrets and local state
+.env
+*.db
+*.db-journal
+*.sqlite
+data/
+dry_run.db
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Local git worktree used by the workflow to hold bot state
+state/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,20 @@
+[project]
+name = "real-estate-bot"
+version = "0.1.0"
+description = "Telegram alerts for new real-estate listings, run on a schedule by GitHub Actions"
+requires-python = ">=3.12"
+dependencies = ["requests>=2.31", "PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]

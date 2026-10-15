@@ -1,0 +1,89 @@
+name: Monitor listings
+
+on:
+  schedule:
+    # Every 6 hours, in UTC: 00:00 06:00 12:00 18:00 UTC.
+    # Israel is UTC+2 in winter (IST) and UTC+3 in summer (IDT), so local run times are:
+    #   winter: 02:00 08:00 14:00 20:00      summer: 03:00 09:00 15:00 21:00
+    # GitHub does not guarantee the exact minute; runs are often delayed by 5-30+ minutes at busy times.
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run = normal | baseline = mark current matches as seen, send nothing | probe = test the Yad2 connection"
+        type: choice
+        options: [run, baseline, probe]
+        default: run
+
+permissions:
+  contents: write # needed to push the `state` branch that stores listing history
+
+# One run at a time, ever. A second trigger waits (it is not cancelled), so two runs can never
+# read the same history and notify the same listing twice.
+concurrency:
+  group: real-estate-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DB_PATH: state/listings.db
+      PYTHONPATH: src
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Load state (git branch "state")
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin state:refs/remotes/origin/state 2>/dev/null || true
+          if git show-ref --verify --quiet refs/remotes/origin/state; then
+            git worktree add -B state state origin/state
+          else
+            echo "No state branch yet - starting with an empty history."
+            git worktree add --detach state
+            git -C state checkout --orphan state
+            git -C state rm -rf . --quiet || true
+          fi
+
+      - name: Run monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          case "${MODE:-run}" in
+            baseline) python -m real_estate_bot.main --baseline ;;
+            probe)    python -m real_estate_bot.main --probe ;;
+            *)        python -m real_estate_bot.main ;;
+          esac
+
+      # always(): even if the run failed half-way, listings already announced must be remembered,
+      # otherwise the next run would announce them again.
+      - name: Save state
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -d state ] || exit 0
+          cd state
+          [ -f listings.db ] || { echo "No database to save."; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Keep exactly ONE commit on the state branch (force-push a fresh orphan commit) so the
+          # repository does not grow by a binary database revision every 6 hours. Safe because the
+          # concurrency group above guarantees a single writer.
+          git checkout -q --orphan state-next
+          git rm -rf --cached . -q 2>/dev/null || true
+          git add listings.db
+          git commit -q -m "Listing state $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push --force origin HEAD:refs/heads/state
